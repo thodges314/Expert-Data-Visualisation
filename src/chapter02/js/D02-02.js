@@ -15,6 +15,51 @@ const show = () => {
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+  // HANDLE MOUSE //////////////////////////////////////////
+  const mousemove =
+    (
+      xScale,
+      yIndexedScale,
+      yIncomeScale,
+      adjustedIndexedData,
+      unadjustedCleaned,
+      focusG
+    ) =>
+    (event) => {
+      const x0 = xScale.invert(d3.pointer(event)[0]);
+      const xToShow = Math.round(x0);
+      const d = adjustedIndexedData[xToShow - 1984];
+      const dIncome = unadjustedCleaned[xToShow - 1984];
+      const xPos = xScale(xToShow);
+      const yIncomePos = yIncomeScale(dIncome.value);
+      const yIndexPos = yIndexedScale(d.indexed);
+
+      focusG
+        .select("#indexCircle")
+        .attr("transform", `translate(${xPos}, ${yIndexPos})`);
+      focusG
+        .select("#incomeCircle")
+        .attr("transform", `translate(${xPos}, ${yIncomePos})`);
+      focusG.select(".verLine").attr("transform", `translate(${xPos}, 0)`);
+
+      const textOffset = yIncomePos < yIndexPos ? 5 : -5;
+
+      focusG
+        .select("#indexText")
+        .attr(
+          "transform",
+          `translate(${xPos}, ${yIndexedScale(d.indexed) + textOffset})`
+        )
+        .text(Math.round(((d.indexed - 100) * 100) / 100));
+      focusG
+        .select("#incomeText")
+        .attr(
+          "transform",
+          `translate(${xPos}, ${yIncomeScale(dIncome.value) - textOffset})`
+        )
+        .text(`$ ${dIncome.value}`);
+    };
+
   // DRAWING TOOLS ///////////////////////////////////////////
   const addGradients = (yIndexed) => {
     const rangeMax = yIndexed.invert(0);
@@ -40,7 +85,7 @@ const show = () => {
 
     chart
       .append("linearGradient")
-      .attr("id", "area-gradient")
+      .attr("id", "line-gradient")
       .attr("gradientUnits", "userSpaceOnUse")
       .attr("x1", 0)
       .attr("y1", yIndexed(rangeMax))
@@ -58,29 +103,154 @@ const show = () => {
       .attr("offset", (d) => d.offset)
       .attr("stop-color", (d) => d.color);
   };
+
   const addArea = (xScale, yIndexedScale, adjustedIndexedData) => {
     const area = d3
       .area()
       .x1((d) => xScale(d.date))
       .y1((d) => yIndexedScale(d.indexed))
       .x0((d) => xScale(d.date))
-      .y0((d) => yIndexedScale(100))
+      .y0(() => yIndexedScale(100))
       .curve(d3.curveCatmullRom.alpha(0.5));
     chart
       .append("path")
       .attr("d", area(adjustedIndexedData))
-      .attr("fill", "url(#area-gradient");
+      .style("fill", "url(#area-gradient");
   };
-  const addIndexedLine = (xScale, yIndexedScale, adjustedIndexedData) => {};
-  const addIncomeLine = (xScale, yIncomeScale, unadjustedCleaned) => {};
-  const addAxis = (yIncomeScale, yIndexedScale, xScale, xRangeAdjusted) => {};
+
+  const addIndexedLine = (xScale, yIndexedScale, adjustedIndexedData) => {
+    const line = d3
+      .line()
+      .x((d) => xScale(d.date))
+      .y((d) => yIndexedScale(d.indexed))
+      .curve(d3.curveCatmullRom.alpha(0.5));
+
+    chart
+      .append("path")
+      .attr("d", line(adjustedIndexedData))
+      .style("fill", "none")
+      .style("stroke", "url(#line-gradient)")
+      .style("stroke-width", "2");
+  };
+  const addIncomeLine = (xScale, yIncomeScale, unadjustedCleaned) => {
+    const lineIncome = d3
+      .line()
+      .x((d) => xScale(d.date))
+      .y((d) => yIncomeScale(d.value))
+      .curve(d3.curveCatmullRom.alpha(0.5));
+
+    chart
+      .append("path")
+      .attr("d", lineIncome(unadjustedCleaned))
+      .style("fill", "none")
+      .style("stroke", "steelblue")
+      .style("stroke-width", "2");
+  };
+  const addAxis = (yIncomeScale, yIndexedScale, xScale, xRangeAdjusted) => {
+    //bottom Axis
+    const bottomAxis = d3.axisBottom().scale(xScale).ticks(15, "f");
+    const bottomAxisG = chart
+      .append("g")
+      .attr("transform", `translate(0, ${yIndexedScale(100)})`)
+      .call(bottomAxis);
+
+    bottomAxisG
+      .selectAll("text")
+      .attr("transform", "translate(-16, 14) rotate(-70)");
+
+    //right Axis
+    const rightAxis = d3.axisRight().scale(yIncomeScale).ticks(20);
+    chart
+      .append("g")
+      .attr("transform", `translate(${width + 4})`)
+      .call(rightAxis);
+
+    //left Axis
+    const leftAxisSteps = d3.range(
+      100 - xRangeAdjusted,
+      100 + xRangeAdjusted + 1,
+      2
+    );
+    const leftAxis = d3
+      .axisLeft()
+      .scale(yIndexedScale)
+      .tickValues(leftAxisSteps);
+    const leftAxisG = chart
+      .append("g")
+      .attr(
+        "transform",
+        `translate(0, ${+yIndexedScale(100 + xRangeAdjusted)})`
+      )
+      .call(leftAxis);
+    leftAxisG
+      .selectAll("text")
+      .text((d) => (d === 100 ? "no change" : d3.format("+")(d - 100)))
+      .attr("stroke", "#aaa")
+      .attr("dy", "-0.5em")
+      .attr("dx", "1em")
+      .style("font-weight", "100")
+      .attr("text-anchor", "start");
+    leftAxisG.selectAll(".domain").remove();
+    leftAxisG
+      .selectAll(".tick line")
+      .attr("x1", width)
+      .attr("stroke", "#ddd")
+      .attr("opacity", "0.6");
+  };
   const addMouseTracker = (
     xScale,
     yIndexedScale,
     yIncomeScale,
     adjustedIndexedData,
     unadjustedCleaned
-  ) => {};
+  ) => {
+    // focus element (gets repositioned)
+    const focusG = chart
+      .append("g")
+      .attr("class", "focus")
+      .style("display", "none");
+    focusG.append("circle").attr("id", "indexCircle").attr("r", 4.5);
+    focusG.append("circle").attr("id", "incomeCircle").attr("r", 4.5);
+    focusG
+      .append("text")
+      .attr("id", "indexText")
+      .attr("x", 9)
+      .attr("dy", ".35em");
+    focusG
+      .append("text")
+      .attr("id", "incomeText")
+      .attr("x", 9)
+      .attr("dy", ".35em");
+    const verticalLineP = d3.line()([
+      [0, -10],
+      [0, height + 10],
+    ]);
+    focusG
+      .append("path")
+      .attr("d", verticalLineP)
+      .attr("class", "verLine")
+      .attr("stroke", "grey")
+      .attr("stroke-dasharray", "6,6")
+      .attr("stroke-width", "1");
+    chart
+      .append("rect")
+      .attr("class", "overlay")
+      .attr("width", width)
+      .attr("height", height)
+      .on("mouseover", () => focusG.style("display", null))
+      .on("mouseout", () => focusG.style("display", "none"))
+      .on(
+        "mousemove",
+        mousemove(
+          xScale,
+          yIndexedScale,
+          yIncomeScale,
+          adjustedIndexedData,
+          unadjustedCleaned,
+          focusG
+        )
+      );
+  };
 
   // DRAW/UPDATE GRAPHS ///////////////////////////////////////
   const mapToIndexed = (row, refRow) => {
