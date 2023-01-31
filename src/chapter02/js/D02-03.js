@@ -4,7 +4,7 @@ const show = () => {
     width = 750 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
-  const chart = d3
+  const chartG = d3
     .select(".chart")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
@@ -41,7 +41,7 @@ const show = () => {
       .y0((d) => scaleY(asPercentage(d, d[0])))
       .y1((d) => scaleY(asPercentage(d, d[1])));
 
-    const serieG = chart.selectAll("g").data(series).enter().append("g");
+    const serieG = chartG.selectAll("g").data(series).enter().append("g");
     serieG
       .append("path")
       .style("fill", (d) => scaleC(d.key))
@@ -49,16 +49,16 @@ const show = () => {
 
     // may as well do the axis.
     const bottomAxis = d3.axisBottom().scale(scaleX).ticks(20, "r");
-    const bottomAxisG = chart
+    const bottomAxisG = chartG
       .append("g")
       .attr("transform", `translate(0, ${scaleY(0)})`)
       .call(bottomAxis);
     bottomAxisG.selectAll(".tick text").text((d) => 2014 + d);
 
     const leftAxis = d3.axisLeft().scale(scaleY).ticks(10, "r");
-    chart.append("g").call(leftAxis);
+    chartG.append("g").call(leftAxis);
 
     const rightAxis = d3.axisRight().scale(scaleY).ticks(10, "r");
-    chart.append("g").attr("transform", `translate(${width})`).call(rightAxis);
+    chartG.append("g").attr("transform", `translate(${width})`).call(rightAxis);
   });
 };

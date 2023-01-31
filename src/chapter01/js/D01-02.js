@@ -3,7 +3,7 @@ const show = () => {
   const width = 800 - margin.left - margin.right;
   const height = 1200 - margin.top - margin.bottom;
 
-  const chart = d3
+  const chartG = d3
     .select(".chart")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
@@ -28,7 +28,12 @@ const show = () => {
     const top10M = grouped["M"].slice(0, namesToShow);
     const both = top10F.concat(top10M.reverse());
 
-    const bars = chart
+    const yScale = d3
+      .scaleLinear()
+      .domain([0, d3.max(both, (d) => d.amount)])
+      .range([0, width - margin.right]);
+
+    const bars = chartG
       .selectAll("g")
       .data(both)
       .enter()
@@ -37,10 +42,7 @@ const show = () => {
         const yPos = (barWidth + barMargin) * i;
         return `translate (0, ${yPos})`;
       });
-    const yScale = d3
-      .scaleLinear()
-      .domain([0, d3.max(both, (d) => d.amount)])
-      .range([0, width - margin.right]);
+
     bars
       .append("rect")
       .attr("height", barWidth)
@@ -53,20 +55,22 @@ const show = () => {
       .attr("dy", ".35em")
       .text((d) => d.name);
 
-    const bottomAxis = d3.axisBottom().scale(yScale).ticks(20, "s");
-    const topAxis = d3.axisTop().scale(yScale).ticks(20, "s");
+    // make axis
 
-    chart
+    const bottomAxisGen = d3.axisBottom().scale(yScale).ticks(20, "s");
+    const topAxisGen = d3.axisTop().scale(yScale).ticks(20, "s");
+
+    chartG
       .append("g")
       .attr(
         "transform",
         `translate( 0, ${both.length * (barWidth + barMargin)})`
       )
-      .call(bottomAxis);
+      .call(bottomAxisGen);
 
-    chart
+    chartG
       .append("g")
       .attr("transform", `translate( 0, ${-barMargin})`)
-      .call(topAxis);
+      .call(topAxisGen);
   });
 };

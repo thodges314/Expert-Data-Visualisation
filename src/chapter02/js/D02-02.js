@@ -8,7 +8,7 @@ const show = () => {
     width = 700 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
-  const chart = d3
+  const chartG = d3
     .select(".chart")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
@@ -64,7 +64,7 @@ const show = () => {
   const addGradients = (yIndexed) => {
     const rangeMax = yIndexed.invert(0);
     const rangeMin = yIndexed.invert(height);
-    chart
+    chartG
       .append("linearGradient")
       .attr("id", "area-gradient")
       .attr("gradientUnits", "userSpaceOnUse")
@@ -83,7 +83,7 @@ const show = () => {
       .attr("offset", (d) => d.offset)
       .attr("stop-color", (d) => d.color);
 
-    chart
+    chartG
       .append("linearGradient")
       .attr("id", "line-gradient")
       .attr("gradientUnits", "userSpaceOnUse")
@@ -112,7 +112,7 @@ const show = () => {
       .x0((d) => xScale(d.date))
       .y0(() => yIndexedScale(100))
       .curve(d3.curveCatmullRom.alpha(0.5));
-    chart
+    chartG
       .append("path")
       .attr("d", areaAdjusted(adjustedIndexedData))
       .style("fill", "url(#area-gradient");
@@ -125,7 +125,7 @@ const show = () => {
       .y((d) => yIndexedScale(d.indexed))
       .curve(d3.curveCatmullRom.alpha(0.5));
 
-    chart
+    chartG
       .append("path")
       .attr("d", lineAdjusted(adjustedIndexedData))
       .style("fill", "none")
@@ -139,7 +139,7 @@ const show = () => {
       .y((d) => yIncomeScale(d.value))
       .curve(d3.curveCatmullRom.alpha(0.5));
 
-    chart
+    chartG
       .append("path")
       .attr("d", lineIncome(unadjustedCleaned))
       .style("fill", "none")
@@ -149,7 +149,7 @@ const show = () => {
   const addAxis = (yIncomeScale, yIndexedScale, xScale, xRangeAdjusted) => {
     //bottom Axis
     const bottomAxis = d3.axisBottom().scale(xScale).ticks(15, "f");
-    const bottomAxisG = chart
+    const bottomAxisG = chartG
       .append("g")
       .attr("transform", `translate(0, ${yIndexedScale(100)})`)
       .call(bottomAxis);
@@ -160,7 +160,7 @@ const show = () => {
 
     //right Axis
     const rightAxis = d3.axisRight().scale(yIncomeScale).ticks(20);
-    chart
+    chartG
       .append("g")
       .attr("transform", `translate(${width + 4})`)
       .call(rightAxis);
@@ -175,7 +175,7 @@ const show = () => {
       .axisLeft()
       .scale(yIndexedScale)
       .tickValues(leftAxisSteps);
-    const leftAxisG = chart
+    const leftAxisG = chartG
       .append("g")
       .attr(
         "transform",
@@ -205,7 +205,7 @@ const show = () => {
     unadjustedCleaned
   ) => {
     // focus element (gets repositioned)
-    const focusG = chart
+    const focusG = chartG
       .append("g")
       .attr("class", "focus")
       .style("display", "none");
@@ -232,7 +232,7 @@ const show = () => {
       .attr("stroke", "grey")
       .attr("stroke-dasharray", "6,6")
       .attr("stroke-width", "1");
-    chart
+    chartG
       .append("rect")
       .attr("class", "overlay")
       .attr("width", width)

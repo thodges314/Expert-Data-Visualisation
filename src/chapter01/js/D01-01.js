@@ -4,7 +4,7 @@ const show = () => {
   const height = 400 - margin.top - margin.bottom;
   const rectangleWidth = 100;
 
-  const chart = d3
+  const chartG = d3
     .select(".chart")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
@@ -19,7 +19,7 @@ const show = () => {
     }
 
     //assign data to rectangles, should there be any
-    const rectangles = chart.selectAll("rect").data(data);
+    const rectangles = chartG.selectAll("rect").data(data);
 
     //set a style on existing rectangles so we can see them
     rectangles

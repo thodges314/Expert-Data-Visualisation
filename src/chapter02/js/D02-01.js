@@ -5,34 +5,34 @@ const show = () => {
   const width = 700 - margin.left - margin.right;
   const height = 500 - margin.top - margin.bottom;
 
-  const chart = d3
+  const chartG = d3
     .select(".chart")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-  const pieContainer = chart
+  const pieContainerG = chartG
     .append("g")
     .attr("transform", `translate(${width / 2}, ${height / 2})`);
 
-  const arc = d3
+  const arcGen = d3
     .arc()
     .outerRadius((height / 2) * 0.6)
     .innerRadius((height / 2) * 0.3);
 
-  const labelsArc = d3
+  const labelsArcGen = d3
     .arc()
     .outerRadius((height / 2) * 0.7)
     .innerRadius((height / 2) * 0.7);
 
-  const pie = d3
+  const pieGen = d3
     .pie()
     .sort(null) // no sorting
     .padAngle(0.04)
     .value((d) => +d.count);
 
-  const popupArc = d3
+  const popupArcGen = d3
     .arc()
     .outerRadius((height / 2) * 0.65)
     .innerRadius((height / 2) * 0.3);
@@ -115,13 +115,13 @@ const show = () => {
 
     const tweenArcs = (d, i, nodes) => {
       const interpolator = getArcInterpolator(nodes[i], d);
-      return (t) => arc(interpolator(t));
+      return (t) => arcGen(interpolator(t));
     };
 
     const tweenLabels = (d, i, nodes) => {
       const interpolator = getArcInterpolator(nodes[i], d);
       return (t) => {
-        const p = labelsArc.centroid(interpolator(t));
+        const p = labelsArcGen.centroid(interpolator(t));
         const xy = p;
         xy[0] = xy[0] * 1.2;
         return `translate(${xy})`;
@@ -131,7 +131,7 @@ const show = () => {
     const tweenAnchor = (d, i, nodes) => {
       const interpolator = getArcInterpolator(nodes[i], d);
       return (t) => {
-        const x = labelsArc.centroid(interpolator(t))[0];
+        const x = labelsArcGen.centroid(interpolator(t))[0];
         return x > 0 ? "start" : "end";
       };
     };
@@ -141,8 +141,8 @@ const show = () => {
       const lineGen = d3.line();
       return (t) => {
         const dInt = interpolator(t);
-        const start = arc.centroid(dInt);
-        const xy = labelsArc.centroid(dInt);
+        const start = arcGen.centroid(dInt);
+        const xy = labelsArcGen.centroid(dInt);
         const textXy = [xy[0], xy[1]];
         textXy[0] = textXy[0] * 1.15;
         return lineGen([start, xy, textXy]);
@@ -154,23 +154,23 @@ const show = () => {
     const totalFirms = filtered.reduce((acc, cv) => acc + +cv.count, 0);
 
     // create arc segments (data property of arcs[i] represents data)
-    const arcs = pie(filtered);
+    const arcs = pieGen(filtered);
 
     // define elements (update)
-    const arcElements = pieContainer.selectAll(".arc").data(arcs);
-    const textElements = pieContainer.selectAll(".labels").data(arcs);
-    const lineElements = pieContainer.selectAll(".lines").data(arcs);
+    const arcElements = pieContainerG.selectAll(".arc").data(arcs);
+    const textElements = pieContainerG.selectAll(".labels").data(arcs);
+    const lineElements = pieContainerG.selectAll(".lines").data(arcs);
 
     // append new elements
     arcElements
       .enter()
       .append("path")
       .attr("class", "arc")
-      .style("fill", (d, i) => colors(i))
+      .style("fill", (_d, i) => colors(i))
       .merge(arcElements)
       .on("mouseover", (evt, d) => {
-        d3.select(evt.currentTarget).attr("d", (d) => popupArc(d));
-        const centerText = pieContainer.selectAll(".center").data([d]);
+        d3.select(evt.currentTarget).attr("d", (d) => popupArcGen(d));
+        const centerText = pieContainerG.selectAll(".center").data([d]);
         centerText
           .enter()
           .append("text")
@@ -179,15 +179,15 @@ const show = () => {
           .merge(centerText)
           .text((d) => `${Math.round((+d.data.count / totalFirms) * 100)}%`);
       })
-      .on("mouseout", (evt, d) => {
-        d3.select(evt.currentTarget).attr("d", (d) => arc(d));
-        pieContainer.selectAll(".center").text("");
+      .on("mouseout", (evt) => {
+        d3.select(evt.currentTarget).attr("d", (d) => arcGen(d));
+        pieContainerG.selectAll(".center").text("");
       })
       .transition()
-      // .ease(d3.easeCircle)
+      .ease(d3.easeCircle)
       // .ease(d3.easeElastic)
       // .ease(d3.easeBackOut)
-      .ease(d3.easeBounce)
+      // .ease(d3.easeBounce)
       .duration(2000)
       .attrTween("d", tweenArcs);
 
@@ -199,7 +199,10 @@ const show = () => {
       .text((d) => `${d.data.yearsInBusinessLabel} (${d.data.count})`)
       .attr("dy", "0.35em")
       .transition()
-      .ease(d3.easeBounce)
+      .ease(d3.easeCircle)
+      // .ease(d3.easeElastic)
+      // .ease(d3.easeBackOut)
+      // .ease(d3.easeBounce)
       .duration(2000)
       .attrTween("transform", tweenLabels)
       .styleTween("text-anchor", tweenAnchor);
@@ -210,7 +213,10 @@ const show = () => {
       .attr("class", "lines")
       .merge(lineElements)
       .transition()
-      .ease(d3.easeBounce)
+      .ease(d3.easeCircle)
+      // .ease(d3.easeElastic)
+      // .ease(d3.easeBackOut)
+      // .ease(d3.easeBounce)
       .duration(2000)
       .attrTween("d", tweenLines);
   };
@@ -247,15 +253,10 @@ const show = () => {
 
   const colors = (i) => d3.interpolateReds(i / 6);
 
-  // const arc = d3
-  //   .arc()
-  //   .outerRadius((height / 2) * 0.6)
-  //   .innerRadius((height / 2) * 0.3);
-
-  pieContainer
+  pieContainerG
     .append("path")
     .attr("class", "backgroundArc")
-    .attr("d", arc({ startAngle: 0, endAngle: 2 * Math.PI }));
+    .attr("d", arcGen({ startAngle: 0, endAngle: 2 * Math.PI }));
 
   const update = () => {
     const toShow = select.property("selectedOptions")[0].value;
