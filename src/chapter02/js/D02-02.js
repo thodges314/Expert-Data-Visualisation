@@ -28,11 +28,11 @@ const show = () => {
     (event) => {
       const x0 = xScale.invert(d3.pointer(event)[0]);
       const xToShow = Math.round(x0);
-      const d = adjustedIndexedData[xToShow - 1984];
+      const dAdjusted = adjustedIndexedData[xToShow - 1984];
       const dIncome = unadjustedCleaned[xToShow - 1984];
       const xPos = xScale(xToShow);
       const yIncomePos = yIncomeScale(dIncome.value);
-      const yIndexPos = yIndexedScale(d.indexed);
+      const yIndexPos = yIndexedScale(dAdjusted.indexed);
 
       focusG
         .select("#indexCircle")
@@ -48,9 +48,9 @@ const show = () => {
         .select("#indexText")
         .attr(
           "transform",
-          `translate(${xPos}, ${yIndexedScale(d.indexed) + textOffset})`
+          `translate(${xPos}, ${yIndexedScale(dAdjusted.indexed) + textOffset})`
         )
-        .text(Math.round(((d.indexed - 100) * 100) / 100));
+        .text(Math.round(((dAdjusted.indexed - 100) * 100) / 100));
       focusG
         .select("#incomeText")
         .attr(
@@ -105,7 +105,7 @@ const show = () => {
   };
 
   const addArea = (xScale, yIndexedScale, adjustedIndexedData) => {
-    const area = d3
+    const areaAdjusted = d3
       .area()
       .x1((d) => xScale(d.date))
       .y1((d) => yIndexedScale(d.indexed))
@@ -114,12 +114,12 @@ const show = () => {
       .curve(d3.curveCatmullRom.alpha(0.5));
     chart
       .append("path")
-      .attr("d", area(adjustedIndexedData))
+      .attr("d", areaAdjusted(adjustedIndexedData))
       .style("fill", "url(#area-gradient");
   };
 
   const addIndexedLine = (xScale, yIndexedScale, adjustedIndexedData) => {
-    const line = d3
+    const lineAdjusted = d3
       .line()
       .x((d) => xScale(d.date))
       .y((d) => yIndexedScale(d.indexed))
@@ -127,7 +127,7 @@ const show = () => {
 
     chart
       .append("path")
-      .attr("d", line(adjustedIndexedData))
+      .attr("d", lineAdjusted(adjustedIndexedData))
       .style("fill", "none")
       .style("stroke", "url(#line-gradient)")
       .style("stroke-width", "2");
@@ -268,12 +268,12 @@ const show = () => {
   };
 
   const update = (year) => {
+    // adjusted (relative)
     year = year || yearMax;
     const yearIndex = adjustedData.length - 1 - (yearMax - year);
     const adjustedIndexedData = adjustedData.map((d) =>
       mapToIndexed(d, adjustedData[yearIndex])
     );
-    const unadjustedCleaned = unadjustedData.map(mapToIncome);
 
     const maxAbove = Math.abs(
       100 - d3.max(adjustedIndexedData, (d) => d.indexed)
@@ -287,6 +287,9 @@ const show = () => {
       .scaleLinear()
       .range([height, 0])
       .domain([100 - xRangeAdjusted, 100 + xRangeAdjusted]);
+
+    // unadjusted (absolute)
+    const unadjustedCleaned = unadjustedData.map(mapToIncome);
     const incomeMin = d3.min(unadjustedCleaned, (d) => d.value);
     const incomeMax = d3.max(unadjustedCleaned, (d) => d.value);
     const yIncomeScale = d3
@@ -296,6 +299,8 @@ const show = () => {
         Math.floor(incomeMin / 2000) * 2000,
         Math.ceil(incomeMax / 2000) * 2000,
       ]);
+
+    // add stuff to graph
     addGradients(yIndexedScale);
     addArea(xScale, yIndexedScale, adjustedIndexedData);
     addIndexedLine(xScale, yIndexedScale, adjustedIndexedData);
