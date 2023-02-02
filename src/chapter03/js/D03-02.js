@@ -54,14 +54,20 @@ const show = () => {
       .selectAll(".link")
       .data(currentRoot.descendants().slice(1))
       .join(
-        (enter) =>
-          enter
-            .append("path")
-            .attr("class", "link")
+        (enter) => {
+          const links = enter.append("path").attr("class", "link");
+          links
             .style("stroke", (d) => colorScale(d.data.group))
-            .attr("d", diagonal),
+            .attr("d", diagonal({ x: 0, y: 0, parent: { x: 0, y: 0 } }))
+            .transition()
+            .duration(2000)
+            .attr("d", diagonal);
+          return links;
+        },
         (update) =>
           update
+            .transition()
+            .duration(2000)
             .attr("d", diagonal) // possibly redundant
             .attr("transform", (d) => `translate(${d.y}, ${d.x})`)
       );
@@ -72,9 +78,10 @@ const show = () => {
       .data(currentRoot.descendants())
       .join(
         (enter) => {
-          const nodes = enter
-            .append("g")
-            .attr("class", "node")
+          const nodes = enter.append("g").attr("class", "node");
+          nodes
+            .transition()
+            .duration(2000)
             .attr(
               "transform",
               (d) => `translate(${radialProject([d.x, d.y])})`
@@ -106,10 +113,13 @@ const show = () => {
           return nodes;
         },
         (update) => {
-          update.attr(
-            "transform",
-            (d) => `translate(${radialProject([d.x, d.y])})`
-          );
+          update
+            .transition()
+            .duration(2000)
+            .attr(
+              "transform",
+              (d) => `translate(${radialProject([d.x, d.y])})`
+            );
           update
             .selectAll("text")
             .transition()
