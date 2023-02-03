@@ -14,6 +14,26 @@ const show = () => {
     .append("g")
     .attr("transform", `translate(${width / 2 + 100}, ${height / 2})`);
 
+  // CLICK HANDLER /////////////////////////////////
+  const click = (e, d) => {
+    if (d.children) {
+      d._children = d.children;
+      d.children = null;
+      d3.select(e.currentTarget)
+        .select("circle")
+        .style("stroke", "red")
+        .style("stroke-width", "2px");
+    } else {
+      d.children = d._children;
+      d._children = null;
+      d3.select(e.currentTarget)
+        .select("circle")
+        .style("stroke", "")
+        .style("r", 2.5);
+    }
+    update();
+  };
+
   // D3 MAPPING FUNCTIONS ///////////////////////
   const treeGen = d3
     .tree()
@@ -49,10 +69,34 @@ const show = () => {
   const update = () => {
     treeGen(currentRoot); // why is this not redundant?
 
+    // get rid of hidden stuff
+    const currentRootKV = currentRoot.descendants().reduce((kv, el) => {
+      kv[el.data.id] = el;
+      return kv;
+    }, {});
+
+    const toRender = currentRoot.descendants().map((el) => {
+      if (currentRootKV[el.data.id]) {
+        return currentRootKV[el.data.id];
+      } else {
+        const fromRoot = el.copy();
+        const parent = fromRoot.parent;
+
+        while (!currentRootKV[parent.data.id]) {
+          parent = parent.parent;
+        }
+        const newParent = currentRootKV[parent.data.id];
+        fromRoot.hidden = true;
+        fromRoot.x = newParent.x;
+        fromRoot.y = newParent.y;
+        return fromRoot;
+      }
+    });
+
     // draw lines
     chartG
       .selectAll(".link")
-      .data(currentRoot.descendants().slice(1))
+      .data(toRender.slice(1))
       .join(
         (enter) => {
           const links = enter.append("path").attr("class", "link");
@@ -62,23 +106,23 @@ const show = () => {
             .transition()
             .duration(2000)
             .attr("d", diagonal);
+          // .attr("transform", (d) => `translate(${d.y}, ${d.x})`);
           return links;
         },
-        (update) =>
-          update
-            .transition()
-            .duration(2000)
-            .attr("d", diagonal) // possibly redundant
-            .attr("transform", (d) => `translate(${d.y}, ${d.x})`)
+        (update) => update.transition().duration(2000).attr("d", diagonal) // possibly redundant
+        // .attr("transform", (d) => `translate(${d.y}, ${d.x})`)
       );
 
     // draw nodes/circles
     chartG
       .selectAll(".node")
-      .data(currentRoot.descendants())
+      .data(toRender)
       .join(
         (enter) => {
-          const nodes = enter.append("g").attr("class", "node");
+          const nodes = enter
+            .append("g")
+            .attr("class", "node")
+            .on("click", click);
           nodes
             .transition()
             .duration(2000)
